@@ -13,7 +13,7 @@ contract DSEngineTest is Test {
     DecentralisedStableCoin public dsc;
     DSCEngine public engine;
     HelperConfig public config;
-    
+
     address public ethUsdPriceFeed;
     address public btcUsdPriceFeed;
     address public weth;
@@ -28,18 +28,19 @@ contract DSEngineTest is Test {
         deployer = new DeployDSC();
         (dsc, engine, config) = deployer.run();
         (ethUsdPriceFeed, btcUsdPriceFeed, weth, wbtc, deployerKey) = config.activeNetworkConfig();
-        
+
         if (block.chainid == 31337) {
-            vm.deal(USER , STARTING_USER_BALANCE);
+            vm.deal(USER, STARTING_USER_BALANCE);
         }
 
-        ERC20Mock(weth).mint(USER , STARTING_USER_BALANCE);
-        ERC20Mock(wbtc).mint(USER , STARTING_USER_BALANCE);
+        ERC20Mock(weth).mint(USER, STARTING_USER_BALANCE);
+        ERC20Mock(wbtc).mint(USER, STARTING_USER_BALANCE);
     }
 
-    ///////// Constructor test  ///////////////// 
+    ///////// Constructor test  /////////////////
     address[] public tokenAddresses;
     address[] public feedAddresses;
+
     function testRevertsIfTokenLengthDoesnotMatchPriceFeeds() public {
         tokenAddresses.push(weth);
         feedAddresses.push(ethUsdPriceFeed);
@@ -62,8 +63,8 @@ contract DSEngineTest is Test {
     function testgetTokenAmountFromUsd() public {
         // if we want 100USD of WETH @ 2000 / WETH, that should be 0.05 WETH
         uint256 expectedAmount = 0.05 ether;
-        uint256 amountWeth = engine.getTokenAmountFromUsd(weth , 100 ether);
-        assertEq(amountWeth , expectedAmount);
+        uint256 amountWeth = engine.getTokenAmountFromUsd(weth, 100 ether);
+        assertEq(amountWeth, expectedAmount);
     }
 
     ///////// depositCollateral tests /////////////
@@ -90,7 +91,7 @@ contract DSEngineTest is Test {
     modifier depositedCollateral() {
         vm.startPrank(USER);
         ERC20Mock(weth).approve(address(engine), AMOUNT_COLLATERAL);
-        engine.depositCollateral(AMOUNT_COLLATERAL , weth);
+        engine.depositCollateral(AMOUNT_COLLATERAL, weth);
         vm.stopPrank();
         _;
     }
@@ -99,20 +100,19 @@ contract DSEngineTest is Test {
         ERC20Mock randToken = new ERC20Mock();
         vm.startPrank(USER);
         vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__TokenNotAllowed.selector, address(randToken)));
-        engine.depositCollateral(AMOUNT_COLLATERAL , address(engine));
+        engine.depositCollateral(AMOUNT_COLLATERAL, address(engine));
         vm.stopPrank();
     }
 
     function testCanDepositCollateralWithoutMinting() public depositedCollateral {
         uint256 userBalance = dsc.balanceOf(USER);
-        assertEq(userBalance , 0);
+        assertEq(userBalance, 0);
     }
 
     function testCanDepositedCollateralAndGetAccountInfo() public depositedCollateral {
-        (uint256 totalDscMinted , uint256 collateralValueInUsd) = engine.getAccountInformation(USER);
-        uint256 expectedDepositAmount = engine.getTokenAmountFromUsd(weth , collateralValueInUsd);
-        assertEq(totalDscMinted , 0);
-        assertEq(expectedDepositAmount , AMOUNT_COLLATERAL);
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = engine.getAccountInformation(USER);
+        uint256 expectedDepositAmount = engine.getTokenAmountFromUsd(weth, collateralValueInUsd);
+        assertEq(totalDscMinted, 0);
+        assertEq(expectedDepositAmount, AMOUNT_COLLATERAL);
     }
-
 }

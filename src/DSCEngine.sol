@@ -36,19 +36,26 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__HealthFactorOk();
     error DSCEngine__HealthFactorNotImproved();
 
+    // ================================================= TYPES =================================================================================
+    using Oracle for AggregatorV3Interface;
+
     // =============================================== STATE VARIABLES ==============================================================================
 
     mapping(address token => address priceFeed) private s_priceFeeds; // tokenToPriceFeed
     mapping(address user => mapping(address token => uint256 collateralAmount)) private s_collateralDeposited; // user - > token - > amount deposited
     mapping(address user => uint256 INRCminted) private s_INRCMinted; // no. of coin minted by an address
+
     DecentralisedStableCoin private immutable i_inrc; // our stable coin
+
     address[] private s_collateralTokens; // array of all tokens that can be used as collateral
+
     uint256 private constant PRECISION = 1e18;
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 200% overcollateralized
     uint256 private constant LIQUIDATION_PRECISION = 100;
-    uint256 private constant LIQUIDATION_BONUS = 10;
+    uint256 private constant LIQUIDATION_BONUS = 10; // this means you get assets at a 10% discount when liquidating
     uint256 private constant MIN_HEALTH_FACTOR = 1;
+    uint256 private constant FEED_PRECISION = 1e8;
 
     // =============================================== EVENTS ==============================================================================
 
@@ -127,6 +134,7 @@ contract DSCEngine is ReentrancyGuard {
         burnINRC(amountDscToBurn);
         redeemCollateral(tokenCollateralAddress, amountCollateral);
         // redeemCollateral already checks healthFactor
+        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     function redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral)
@@ -135,6 +143,7 @@ contract DSCEngine is ReentrancyGuard {
         nonReentrant
     {
         _redeemCollateral(tokenCollateralAddress, amountCollateral, msg.sender, msg.sender);
+        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     /**
@@ -153,12 +162,7 @@ contract DSCEngine is ReentrancyGuard {
     }
 
     function burnINRC(uint256 amount) public moreThanZero(amount) {
-        s_INRCMinted[msg.sender] -= amount;
-        bool success = i_inrc.transferFrom(msg.sender, address(this), amount);
-        if (!success) {
-            revert DSCEngine__TransferFailed();
-        }
-        i_inrc.burn(amount);
+        _burnDsc(amount, msg.sender, msg.sender);
         _revertIfHealthFactorIsBroken(msg.sender); // this will never hit, if possible
     }
 
@@ -223,10 +227,61 @@ contract DSCEngine is ReentrancyGuard {
         return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
-    function getAccountInformation(address user) external view returns (uint256 totalDscMinted , uint256 collateralValueInUsd){
-        (totalDscMinted , collateralValueInUsd) = _getAccountInformation(user);
+    function getAccountInformation(address user)
+        external
+        view
+        returns (uint256 totalDscMinted, uint256 collateralValueInUsd)
+    {
+        (totalDscMinted, collateralValueInUsd) = _getAccountInformation(user);
     }
 
+    function calculateHealthFactor(uint256 totalInrcMinted, uint256 collateralValueInUsd)
+        external
+        pure
+        returns (uint256)
+    {
+        return _calculateHealthFactor(totalInrcMinted, collateralValueInUsd);
+    }
+
+    function getPrecision() external pure returns (uint256) {
+        return PRECISION;
+    }
+
+    function getAdditionalFeedPrecision() external pure returns (uint256) {
+        return ADDITIONAL_FEED_PRECISION;
+    }
+
+    function getLiquidationThreshold() external pure returns (uint256) {
+        return LIQUIDATION_THRESHOLD;
+    }
+
+    function getLiquidationBonus() external pure returns (uint256) {
+        return LIQUIDATION_BONUS;
+    }
+
+    function getLiquidationPrecision() external pure returns (uint256) {
+        return LIQUIDATION_PRECISION;
+    }
+
+    function getMinHealthFactor() external pure returns (uint256) {
+        return MIN_HEALTH_FACTOR;
+    }
+
+    function getCollateralTokens() external view returns (address[] memory) {
+        return s_collateralTokens;
+    }
+
+    function getDsc() external view returns (address) {
+        return address(i_inrc);
+    }
+
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+        return s_priceFeeds[token];
+    }
+
+    function getHealthFactor(address user) external view returns (uint256) {
+        return _healthFactor(user);
+    }
     // =============================================== PRIVATE & INTERNAL FUNCTIONS ===========================================================================
 
     function _getUsdValue(address token, uint256 amount) private view returns (uint256) {
@@ -282,8 +337,18 @@ contract DSCEngine is ReentrancyGuard {
         // if less then 1 then INRC is more, so it can be liquidated to increase collateral
         // return (collateralValueInUSD / totalINRCminted);
 
-        uint256 collateralAdjustedForThreshold = (collateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
-        return (collateralAdjustedForThreshold * PRECISION) / totalINRCminted;
+        return _calculateHealthFactor(totalINRCminted, collateralValueInUSD);
+    }
+
+    function _calculateHealthFactor(uint256 totalInrcMinted, uint256 collateralValueInUsd)
+        internal
+        pure
+        returns (uint256)
+    {
+        if (totalInrcMinted == 0) return type(uint256).max;
+
+        uint256 collateralAdjustForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+        return (collateralAdjustForThreshold * PRECISION) / totalInrcMinted;
     }
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
