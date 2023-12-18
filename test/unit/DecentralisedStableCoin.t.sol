@@ -7,7 +7,6 @@ import {Test, console} from "../../lib/forge-std/src/Test.sol";
 import {StdCheats} from "../../lib/forge-std/src/StdCheats.sol";
 
 contract DecentralisedStableCoinTest is StdCheats, Test {
-
     DecentralisedStableCoin dsc;
 
     function setUp() public {
@@ -34,6 +33,4 @@ contract DecentralisedStableCoinTest is StdCheats, Test {
         dsc.mint(100, address(0));
         vm.stopPrank();
     }
-
-
 }
