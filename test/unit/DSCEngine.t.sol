@@ -100,7 +100,7 @@ contract DSEngineTest is Test {
         ERC20Mock randToken = new ERC20Mock();
         vm.startPrank(USER);
         vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__TokenNotAllowed.selector, address(randToken)));
-        engine.depositCollateral(AMOUNT_COLLATERAL, address(engine));
+        engine.depositCollateral(AMOUNT_COLLATERAL, address(randToken));
         vm.stopPrank();
     }
 
@@ -110,7 +110,7 @@ contract DSEngineTest is Test {
     }
 
     function testCanDepositedCollateralAndGetAccountInfo() public depositedCollateral {
-        (uint256 totalDscMinted, uint256 collateralValueInUsd) = engine.getAccountInformation(USER);
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = engine.getAccountInformation(address(1));
         uint256 expectedDepositAmount = engine.getTokenAmountFromUsd(weth, collateralValueInUsd);
         assertEq(totalDscMinted, 0);
         assertEq(expectedDepositAmount, AMOUNT_COLLATERAL);
