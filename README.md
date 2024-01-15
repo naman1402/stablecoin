@@ -1,77 +1,34 @@
-## Foundry
+# Stablecoin Project
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Overview
 
-Foundry consists of:
+This repository contains the codebase for our Stablecoin project, a digital currency designed to maintain a stable value by pegging it to a reserve of assets or a stable benchmark. Stablecoins are crucial in the cryptocurrency space to mitigate the volatility often associated with traditional cryptocurrencies like Bitcoin or Ethereum.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Features
 
-## Documentation
+- **Stability:** Our Stablecoin aims to maintain a stable value, making it suitable for everyday transactions and as a store of value.
 
-https://book.getfoundry.sh/
+- **Transparency:** The project is open-source, allowing for transparency and collaboration. You can review the code to understand how the Stablecoin operates.
 
-## Usage
+## Testing with Foundry
 
-### Build
+We have utilized Foundry for testing purposes. Foundry provides a robust environment for simulating various scenarios and assessing the performance and reliability of our Stablecoin under different conditions.
 
-```shell
-$ forge build
-```
+### Foundry Features
 
-### Test
+- **Scenario Testing:** Foundry enables us to simulate different market conditions, user behaviors, and external events to evaluate how our Stablecoin responds.
 
-```shell
-$ forge test
-```
+- **Security Analysis:** By using Foundry, we conduct security analyses to identify potential vulnerabilities and strengthen the overall security posture of our Stablecoin.
 
-### Format
+- **Performance Metrics:** Foundry provides detailed performance metrics, helping us optimize our Stablecoin for efficiency and scalability.
 
-```shell
-$ forge fmt
-```
+## Getting Started
 
-### Gas Snapshots
+To run the Stablecoin locally or integrate it into your project, follow these steps:
 
-```shell
-$ forge snapshot
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/naman1402/stablecoin
 
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
-
-
-### Architecture of Stablecoin
-1. (Relative Stability) Anchored or Pegged -> 1 INR = 0.010 USD
-    1. Chainlink Price Feed
-    2. Set a function to exchange ETH & BTC -> $$$
-2. Stability Mechanism (Minting) : Algorithmic (Decentralized)
-    1. People can only mint the stablecoin with enough collateral (coded)
-3. Collateral : Exogenous (Crypto)
-    1. wETH
-    2. wBTC
+   cd stablecoin
+    ```
